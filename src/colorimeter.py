@@ -187,7 +187,7 @@ class Colorimeter:
 
     @property
     def raw_sensor_value(self):
-        return self.light_sensor.value
+        return self.light_sensor.raw_value
 
     @property
     def transmittance(self):

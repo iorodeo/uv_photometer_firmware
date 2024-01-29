@@ -1,6 +1,6 @@
 import board
 import collections
-import adafruit_tsl2591
+import iorodeo_as7331
 
 __version__ = '0.1.0'
 
@@ -36,20 +36,38 @@ COLOR_TO_RGB = collections.OrderedDict([
     ('orange' , 0xffb447),
     ])
 
-STR_TO_GAIN = collections.OrderedDict([
-        ('low'  , adafruit_tsl2591.GAIN_LOW ),
-        ('med'  , adafruit_tsl2591.GAIN_MED ),
-        ('high' , adafruit_tsl2591.GAIN_HIGH),
-        ('max'  , adafruit_tsl2591.GAIN_MAX ),
-        ])
-GAIN_TO_STR = {v:k for k,v in STR_TO_GAIN.items()}
+STR_TO_GAIN = collections.OrderedDict([ 
+    ('1x',    iorodeo_as7331.GAIN_1X),
+    ('2x',    iorodeo_as7331.GAIN_2X),
+    ('4x',    iorodeo_as7331.GAIN_4X),
+    ('8x',    iorodeo_as7331.GAIN_8X),
+    ('16x',   iorodeo_as7331.GAIN_16X),
+    ('32x',   iorodeo_as7331.GAIN_32X),
+    ('64x',   iorodeo_as7331.GAIN_64X),
+    ('128x',  iorodeo_as7331.GAIN_128X),
+    ('256x',  iorodeo_as7331.GAIN_256X),
+    ('512x',  iorodeo_as7331.GAIN_512X),
+    ('1024x', iorodeo_as7331.GAIN_1024X),
+    ('2048x', iorodeo_as7331.GAIN_2048X),
+    ])
+GAIN_TO_STR = collections.OrderedDict(((v,k) for k,v in STR_TO_GAIN.items()))
 
-STR_TO_INTEGRATION_TIME = collections.OrderedDict([
-        ('100ms', adafruit_tsl2591.INTEGRATIONTIME_100MS),
-        ('200ms', adafruit_tsl2591.INTEGRATIONTIME_200MS),
-        ('300ms', adafruit_tsl2591.INTEGRATIONTIME_300MS),
-        ('400ms', adafruit_tsl2591.INTEGRATIONTIME_400MS),
-        ('500ms', adafruit_tsl2591.INTEGRATIONTIME_500MS),
-        ('600ms', adafruit_tsl2591.INTEGRATIONTIME_600MS),
-        ])
-INTEGRATION_TIME_TO_STR = {v:k for k,v in STR_TO_INTEGRATION_TIME.items()}
+STR_TO_INTEGRATION_TIME = collections.OrderedDict([ 
+    ('1ms',    iorodeo_as7331.INTEGRATION_TIME_1MS),      
+    ('2ms',    iorodeo_as7331.INTEGRATION_TIME_2MS),      
+    ('4ms',    iorodeo_as7331.INTEGRATION_TIME_4MS),      
+    ('8ms',    iorodeo_as7331.INTEGRATION_TIME_8MS),      
+    ('16ms',   iorodeo_as7331.INTEGRATION_TIME_16MS),     
+    ('32ms',   iorodeo_as7331.INTEGRATION_TIME_32MS),     
+    ('64ms',   iorodeo_as7331.INTEGRATION_TIME_64MS),     
+    ('128ms',  iorodeo_as7331.INTEGRATION_TIME_128MS),    
+    ('256ms',  iorodeo_as7331.INTEGRATION_TIME_256MS),    
+    ('512ms',  iorodeo_as7331.INTEGRATION_TIME_512MS),    
+    #('1024ms', iorodeo_as7331.INTEGRATION_TIME_1024MS),   
+    #('2048ms', iorodeo_as7331.INTEGRATION_TIME_2048MS),   
+    #('4096ms', iorodeo_as7331.INTEGRATION_TIME_4096MS),   
+    #('8192ms', iorodeo_as7331.INTEGRATION_TIME_8192MS),   
+    #('1638ms', iorodeo_as7331.INTEGRATION_TIME_16384MS),  
+    ])
+INTEGRATION_TIME_TO_STR = \
+    collections.OrderedDict(((v,k) for k,v in STR_TO_INTEGRATION_TIME.items()))

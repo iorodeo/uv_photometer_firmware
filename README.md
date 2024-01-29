@@ -1,8 +1,8 @@
-# Open Colorimeter Firmware 
+# UV Absorbance Photometer Firmware 
 
 ![alt text](/images/open_colorimeter.png)
 
-Firmware (circuitpython) for our new stand alone colorimeter (in development). 
+Firmware (circuitpython) for IO Rodeo's UV absorbance photometer (in development).
 
 ## Requirements 
 
@@ -10,7 +10,8 @@ Firmware (circuitpython) for our new stand alone colorimeter (in development).
 * adafruit_bitmap_font
 * adafruit_bus_device
 * adafruit_display_text
-* adafruit_tsl2591
+* adatfruit_itertools
+* iorodeo_as7331
 
 ## Installation
 
@@ -25,7 +26,7 @@ your feather development board.
     - adafruit_bus_device
     - adafruit_display_text
     - adafruit_display_shapes
-    - adafruit_tsl2591
     - adatfruit_itertools
+    - iorodeo_as7331
   
 
