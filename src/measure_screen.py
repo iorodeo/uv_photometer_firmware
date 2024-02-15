@@ -10,11 +10,18 @@ class MeasureScreen:
     HEADER_LABEL_Y_SPACING = 18 
     VALUE_LABEL_Y_SPACING =  16  
     BLANK_LABEL_Y_SPACING = 14  
-    GAIN_LABEL_X_SPACING = 3      
-    ITIME_LABEL_X_SPACING = 15      
-    GAIN_ITIME_LABELS_Y_SPACING = 14  
+
+    GAIN_LABEL_X_SPACING = 43      
+    GAIN_LABEL_Y_SPACING = 10  
+
+    ITIME_LABEL_X_SPACING = 43      
+    ITIME_LABEL_Y_SPACING = 3 
+
+    CHANNEL_LABEL_X_SPACING = 10 
+    CHANNEL_LABEL_Y_SPACING = 16 
+
+    BATTERY_LABEL_X_SPACING = 15      
     BATTERY_LABEL_Y_SPACING = 16
-    BATTERY_LABEL_X_POSITION = 10      
 
     def __init__(self):
 
@@ -93,9 +100,9 @@ class MeasureScreen:
                 anchor_point = (0.0,1.0),
                 )
         gain_bbox = self.gain_label.bounding_box
-        gain_label_x  = self.GAIN_LABEL_X_SPACING
+        gain_label_x  = self.GAIN_LABEL_X_SPACING 
         gain_label_y  = value_label_y + gain_bbox[3] 
-        gain_label_y += self.GAIN_ITIME_LABELS_Y_SPACING 
+        gain_label_y += self.GAIN_LABEL_Y_SPACING 
         self.gain_label.anchored_position = (gain_label_x, gain_label_y)
 
         # Create text label for integration time information
@@ -110,14 +117,27 @@ class MeasureScreen:
                 anchor_point = (0.0,1.0),
                 )
         itime_bbox = self.itime_label.bounding_box
-        itime_label_x  = gain_label_x + gain_bbox[2] 
-        itime_label_x += self.ITIME_LABEL_X_SPACING
-        itime_label_y  = value_label_y + itime_bbox[3] 
-        itime_label_y += self.GAIN_ITIME_LABELS_Y_SPACING 
+        itime_label_x = self.ITIME_LABEL_X_SPACING
+        itime_label_y  = gain_label_y + itime_bbox[3] 
+        itime_label_y += self.ITIME_LABEL_Y_SPACING 
         self.itime_label.anchored_position = (itime_label_x, itime_label_y)
 
+        # Create channel indicator text label
+        chan_str = 'UVX'
+        text_color = constants.COLOR_TO_RGB['gray']
+        self.chan_label = label.Label(
+                fonts.font_10pt, 
+                text = chan_str, 
+                color = text_color, 
+                scale = font_scale,
+                anchor_point = (0.0,1.0),
+                )
+        chan_bbox = self.chan_label.bounding_box
+        chan_label_x = self.CHANNEL_LABEL_X_SPACING 
+        chan_label_y = blank_label_y + chan_bbox[3] + self.CHANNEL_LABEL_Y_SPACING 
+        self.chan_label.anchored_position = (chan_label_x, chan_label_y)
+
         # Create integration time/window text label
-        #bat_str = 'battery 100%'
         bat_str = 'battery 0.0V'
         text_color = constants.COLOR_TO_RGB['gray']
         self.bat_label = label.Label(
@@ -125,13 +145,13 @@ class MeasureScreen:
                 text = bat_str, 
                 color = text_color, 
                 scale = font_scale,
-                anchor_point = (0.5,1.0),
+                anchor_point = (0.0,1.0),
                 )
-        bbox = self.bat_label.bounding_box
-        bat_label_x = board.DISPLAY.width//2 
-        bat_label_y = blank_label_y + bbox[3] + self.BATTERY_LABEL_Y_SPACING 
+        bat_bbox = self.bat_label.bounding_box
+        bat_label_x = chan_label_x + chan_bbox[2] + self.BATTERY_LABEL_X_SPACING  
+        bat_label_y = blank_label_y + bat_bbox[3] + self.BATTERY_LABEL_Y_SPACING
         self.bat_label.anchored_position = (bat_label_x, bat_label_y)
-        
+
         # Ceate display group and add items to it
         self.group = displayio.Group()
         self.group.append(self.tile_grid)
@@ -141,6 +161,7 @@ class MeasureScreen:
         self.group.append(self.gain_label)
         self.group.append(self.itime_label)
         self.group.append(self.bat_label)
+        self.group.append(self.chan_label)
 
     def set_measurement(self, name, units, value, precision):
         if value is None:
@@ -193,8 +214,11 @@ class MeasureScreen:
     def clear_integration_time(self):
         self.set_integration_time(None)
 
-    def set_bat(self, value):
+    def set_battery(self, value):
         self.bat_label.text = f'battery {value:1.1f}V'
+
+    def set_channel(self, channel):
+        self.chan_label.text = constants.CHANNEL_TO_STR[channel]
 
     def show(self):
         board.DISPLAY.show(self.group)

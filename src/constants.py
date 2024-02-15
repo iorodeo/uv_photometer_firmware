@@ -71,3 +71,13 @@ STR_TO_INTEGRATION_TIME = collections.OrderedDict([
     ])
 INTEGRATION_TIME_TO_STR = \
     collections.OrderedDict(((v,k) for k,v in STR_TO_INTEGRATION_TIME.items()))
+
+CHANNEL_UVA = 0
+CHANNEL_UVB = 1
+CHANNEL_UVC = 2
+NUM_CHANNEL = 3
+
+CHANNEL_TO_STR = {0 : 'UVA', 1 : 'UVB', 2 : 'UVC'}
+STR_TO_CHANNEL = {v:k for k,v in CHANNEL_TO_STR.items()}
+
+

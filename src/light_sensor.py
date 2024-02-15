@@ -18,7 +18,6 @@ class LightSensor:
 
         self.gain = self.DEFAULT_GAIN
         self.integration_time = self.DEFAULT_INTEGRATION_TIME
-        self.channel = 2
 
     @property
     def max_counts(self):
@@ -44,18 +43,14 @@ class LightSensor:
 
     @property
     def value(self):
-        #-----------------------------------------------------
-        # TODO: need some way to indicate overflow for channel
-        # ----------------------------------------------------
-        value = self._device.values[self.channel]
-        return value
+        return self._device.values
 
     @property
-    def raw_value(self):
-        raw_value = self._device.raw_values[self.channel]
-        if raw_value >= self.max_counts:
+    def raw_values(self):
+        raw_values = self._device.raw_values
+        if any([x>self.max_counts for x in raw_values]):
             raise LightSensorOverflow('light sensor reading > max_counts')
-        return raw_value
+        return raw_values
 
 class LightSensorOverflow(Exception):
     pass

@@ -14,6 +14,8 @@ class Configuration(JsonSettingsFile):
     LOAD_ERROR_EXCEPTION = ConfigurationError
     ALLOWED_PRECISION = (2,3,4)
     DEFAULT_PRECISION = 2
+    ALLOWED_CHANNEL = ('UVA', 'UVB', 'UVC')
+    DEFAULT_CHANNEL = 'UVC'
 
     def __init__(self):
         super().__init__()
@@ -53,14 +55,17 @@ class Configuration(JsonSettingsFile):
 
         # Check precision
         self.data.setdefault('precision', self.DEFAULT_PRECISION)
-        try:
-            precision = self.data['precision']
-        except KeyError:
-            pass
-        else:
-            if not precision in self.ALLOWED_PRECISION:
-                error_msg = f'precision must be in{self.ALLOWED_PRECISION}'
-                error_dict['precision'] = error_msg
+        precision = self.data['precision']
+        if not precision in self.ALLOWED_PRECISION: 
+            error_msg = f'precision must be in {self.ALLOWED_PRECISION}'
+            error_dict['precision'] = error_msg
+
+        # Check the channel selection
+        self.data.setdefault('channel', self.DEFAULT_CHANNEL)
+        channel = self.data['channel']
+        if not channel in self.ALLOWED_CHANNEL:
+            error_msg = f'channel must be in {self.ALLOWED_CHANNEL}'
+            error_dict['channel'] = error_msg
 
     @property
     def integration_time(self):
@@ -89,6 +94,10 @@ class Configuration(JsonSettingsFile):
     @property
     def precision(self):
         return self.data['precision']
+
+    @property
+    def channel(self):
+        return constants.STR_TO_CHANNEL[self.data['channel']]
 
 
 

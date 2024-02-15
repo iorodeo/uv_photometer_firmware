@@ -1,3 +1,4 @@
+import gc
 import time
 import ulab
 import board
@@ -44,8 +45,8 @@ class Colorimeter:
         self.menu_item_pos = 0
         self.mode = Mode.MEASURE
         self.is_blanked = False
-        self.blank_value = 1.0
-
+        self.blank_values = ulab.numpy.ones((constants.NUM_CHANNEL,)) 
+        self.channel = None
 
         # Create screens
         board.DISPLAY.brightness = 1.0
@@ -70,6 +71,7 @@ class Colorimeter:
             self.message_screen.set_message(error)
             self.message_screen.set_to_error()
             self.mode = Mode.MESSAGE
+        self.channel = self.configuration.channel
 
         # Load calibrations and populate menu items
         self.calibrations = Calibrations()
@@ -115,14 +117,15 @@ class Colorimeter:
                 self.light_sensor.gain = self.configuration.gain
             if self.configuration.integration_time is not None:
                 self.light_sensor.integration_time = self.configuration.integration_time
+            self.light_sensor.channel = self.configuration.channel
             self.blank_sensor(set_blanked=False)
             self.measure_screen.set_not_blanked()
 
         # Setup up battery monitoring settings cycles 
         self.battery_monitor = BatteryMonitor()
-        self.setup_gain_and_itime_cycles()
+        self.setup_menu_cycles()
 
-    def setup_gain_and_itime_cycles(self):
+    def setup_menu_cycles(self):
         self.gain_cycle = adafruit_itertools.cycle(constants.GAIN_TO_STR) 
         if self.configuration.gain is not None:
             while next(self.gain_cycle) != self.configuration.gain: 
@@ -131,6 +134,11 @@ class Colorimeter:
         self.itime_cycle = adafruit_itertools.cycle(constants.INTEGRATION_TIME_TO_STR)
         if self.configuration.integration_time is not None:
             while next(self.itime_cycle) != self.configuration.integration_time:
+                continue
+
+        self.channel_cycle = adafruit_itertools.cycle(constants.CHANNEL_TO_STR)
+        if self.configuration.channel is not None:
+            while next(self.channel_cycle) != self.configuration.channel:
                 continue
 
     @property
@@ -186,13 +194,16 @@ class Colorimeter:
         return units
 
     @property
-    def raw_sensor_value(self):
-        return self.light_sensor.raw_value
+    def raw_sensor_values(self):
+        uva, uvb, uvc, _ = self.light_sensor.raw_values
+        return uva, uvb, uvc 
 
     @property
     def transmittance(self):
-        transmittance = float(self.raw_sensor_value)/self.blank_value
-        return transmittance
+        value = float(self.raw_sensor_values[self.channel])
+        blank_value = self.blank_values[self.channel]
+        transmittance = value/blank_value
+        return value/blank_value
 
     @property
     def absorbance(self):
@@ -207,7 +218,7 @@ class Colorimeter:
         elif self.is_transmittance:
             value = self.transmittance
         elif self.is_raw_sensor:
-            value = self.raw_sensor_value
+            value = self.raw_sensor_values[self.channel]
         else:
             try:
                 value = self.calibrations.apply( 
@@ -222,15 +233,16 @@ class Colorimeter:
         return value
 
     def blank_sensor(self, set_blanked=True):
-        blank_samples = ulab.numpy.zeros((constants.NUM_BLANK_SAMPLES,))
+        
+        blank_samples = ulab.numpy.zeros( (constants.NUM_BLANK_SAMPLES,constants.NUM_CHANNEL))
         for i in range(constants.NUM_BLANK_SAMPLES):
             try:
-                value = self.raw_sensor_value
+                values = self.raw_sensor_values
             except LightSensorOverflow:
                 value = self.light_sensor.max_counts
-            blank_samples[i] = value
+            blank_samples[i,:] = values
             time.sleep(constants.BLANK_DT)
-        self.blank_value = ulab.numpy.median(blank_samples)
+        self.blank_values = ulab.numpy.median(blank_samples,axis=0)
         if set_blanked:
             self.is_blanked = True
 
@@ -251,6 +263,9 @@ class Colorimeter:
 
     def right_button_pressed(self, buttons):
         return buttons & constants.BUTTON['right']
+
+    def channel_button_pressed(self, buttons):
+        return buttons & constants.BUTTON['left']
 
     def gain_button_pressed(self, buttons):
         if self.is_raw_sensor:
@@ -293,6 +308,8 @@ class Colorimeter:
             elif self.itime_button_pressed(buttons):
                 self.light_sensor.integration_time = next(self.itime_cycle)
                 self.is_blanked = False
+            elif self.channel_button_pressed(buttons):
+                self.channel = next(self.channel_cycle)
 
         elif self.mode == Mode.MENU:
             if self.menu_button_pressed(buttons):
@@ -369,8 +386,8 @@ class Colorimeter:
                 # Update and display measurement of battery voltage
                 self.battery_monitor.update()
                 battery_voltage = self.battery_monitor.voltage_lowpass
-                self.measure_screen.set_bat(battery_voltage)
-
+                self.measure_screen.set_battery(battery_voltage)
+                self.measure_screen.set_channel(self.channel)
                 self.measure_screen.show()
 
             elif self.mode == Mode.MENU:
@@ -380,6 +397,7 @@ class Colorimeter:
                 self.message_screen.show()
 
             time.sleep(constants.LOOP_DT)
+            gc.collect()
 
 
 
