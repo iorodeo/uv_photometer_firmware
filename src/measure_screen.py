@@ -75,7 +75,7 @@ class MeasureScreen:
         # Create text label for blanking info
         # Note: not shown when gain and time labels are shown
         blank_str = 'initializing' 
-        text_color = constants.COLOR_TO_RGB['orange']
+        text_color = constants.COLOR_TO_RGB['purple']
         self.blank_label = label.Label(
                 fonts.font_10pt, 
                 text=blank_str, 
@@ -91,7 +91,7 @@ class MeasureScreen:
         # Create text label for gain information
         # Note: not shown when blanking label is shown
         gain_str = 'gain xxx' 
-        text_color = constants.COLOR_TO_RGB['orange']
+        text_color = constants.COLOR_TO_RGB['purple']
         self.gain_label = label.Label(
                 fonts.font_10pt, 
                 text=gain_str, 
@@ -108,7 +108,7 @@ class MeasureScreen:
         # Create text label for integration time information
         # Note: not shown when blanking label is shown
         itime_str = 'time xxxms' 
-        text_color = constants.COLOR_TO_RGB['orange']
+        text_color = constants.COLOR_TO_RGB['purple']
         self.itime_label = label.Label(
                 fonts.font_10pt, 
                 text=itime_str, 
@@ -165,7 +165,7 @@ class MeasureScreen:
 
     def set_measurement(self, name, units, value, precision):
         if value is None:
-            self.value_label.color = constants.COLOR_TO_RGB['orange']
+            self.value_label.color = constants.COLOR_TO_RGB['purple']
             self.value_label.text = 'range error' 
         else:
             if units is None:

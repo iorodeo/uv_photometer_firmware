@@ -94,7 +94,7 @@ class MenuScreen:
         for i, item_label in enumerate(self.item_labels):
             if i==num:
                 item_label.color = constants.COLOR_TO_RGB['black']
-                item_label.background_color = constants.COLOR_TO_RGB['orange']
+                item_label.background_color = constants.COLOR_TO_RGB['purple']
             else:
                 item_label.color = constants.COLOR_TO_RGB['white']
                 item_label.background_color = constants.COLOR_TO_RGB['black']

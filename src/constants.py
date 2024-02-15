@@ -34,6 +34,7 @@ COLOR_TO_RGB = collections.OrderedDict([
     ('blue'   , 0x0000ff),
     ('white'  , 0xffffff), 
     ('orange' , 0xffb447),
+    ('purple' , 0x9d4edd),
     ])
 
 STR_TO_GAIN = collections.OrderedDict([ 
