@@ -138,7 +138,7 @@ class Colorimeter:
 
         self.channel_cycle = adafruit_itertools.cycle(constants.CHANNEL_TO_STR)
         if self.configuration.channel is not None:
-            while next(self.channel_cycle) != self.configuration.channel:
+            while next(self.channel_cycle) != self.channel:
                 continue
 
     @property
@@ -164,10 +164,18 @@ class Colorimeter:
         view_items = []
         for i, item in enumerate(self.menu_items[n0:n1]):
             led = self.calibrations.led(item)
-            if led is None:
+            chan = self.calibrations.channel(item)
+            if led is None and chan is None:
                 item_text = f'{n0+i} {item}' 
-            else:
+            elif chan is None:
                 item_text = f'{n0+i} {item} ({led})' 
+            elif led is None:
+                chan_str = constants.CHANNEL_TO_STR[chan]
+                item_text = f'{n0+i} {item} ({chan_str})' 
+            else:
+                chan_str = constants.CHANNEL_TO_STR[chan]
+                item = item[:8]
+                item_text = f'{n0+i} {item} ({led},{chan_str})' 
             view_items.append(item_text)
         self.menu_screen.set_menu_items(view_items)
         pos = self.menu_item_pos - self.menu_view_pos
@@ -213,6 +221,7 @@ class Colorimeter:
 
     @property
     def measurement_value(self):
+        self.update_channel()
         if self.is_absorbance: 
             value = self.absorbance
         elif self.is_transmittance:
@@ -220,6 +229,7 @@ class Colorimeter:
         elif self.is_raw_sensor:
             value = self.raw_sensor_values[self.channel]
         else:
+            self.channel = self.calibrations.channel(self.measurement_name)
             try:
                 value = self.calibrations.apply( 
                         self.measurement_name, 
@@ -231,6 +241,14 @@ class Colorimeter:
                 self.measurement_name = 'Absorbance'
                 self.mode = Mode.MESSAGE
         return value
+
+    def update_channel(self):
+        channel = self.calibrations.channel(self.measurement_name)
+        if channel is not None:
+            if channel != self.channel:
+                self.channel = channel
+                while next(self.channel_cycle) != self.channel:
+                    continue
 
     def blank_sensor(self, set_blanked=True):
         

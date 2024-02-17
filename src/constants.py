@@ -10,7 +10,7 @@ SPLASHSCREEN_BMP = 'assets/splashscreen.bmp'
 
 LOOP_DT = 0.1
 BLANK_DT = 0.05
-DEBOUNCE_DT = 0.6 
+DEBOUNCE_DT = 0.7 
 NUM_BLANK_SAMPLES = 50 
 BATTERY_AIN_PIN = board.A6
 
@@ -78,7 +78,12 @@ CHANNEL_UVB = 1
 CHANNEL_UVC = 2
 NUM_CHANNEL = 3
 
-CHANNEL_TO_STR = {0 : 'UVA', 1 : 'UVB', 2 : 'UVC'}
-STR_TO_CHANNEL = {v:k for k,v in CHANNEL_TO_STR.items()}
+STR_TO_CHANNEL = collections.OrderedDict([
+    ('UVA', 0), 
+    ('UVB', 1),
+    ('UVC', 2)
+    ])
+CHANNEL_TO_STR = \
+        collections.OrderedDict(((v,k) for k,v in STR_TO_CHANNEL.items()))
 
 
