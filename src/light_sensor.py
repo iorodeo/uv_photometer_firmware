@@ -47,10 +47,9 @@ class LightSensor:
 
     @property
     def raw_values(self):
-        raw_values = self._device.raw_values
-        if any([x>self.max_counts for x in raw_values]):
-            raise LightSensorOverflow('light sensor reading > max_counts')
-        return raw_values
+        return self._device.raw_values
+        #if any([x>self.max_counts for x in raw_values]):
+        #    raise LightSensorOverflow('light sensor reading > max_counts')
 
 class LightSensorOverflow(Exception):
     pass

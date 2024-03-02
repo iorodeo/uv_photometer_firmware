@@ -40,19 +40,19 @@ class Colorimeter:
 
     def __init__(self):
 
+        self.is_startup = True
+        self.measure_screen = None 
+        self.message_screen = None 
+        self.menu_screen = None 
+        self.mode = Mode.MEASURE
+        board.DISPLAY.brightness = 1.0
+
         self.menu_items = list(self.DEFAULT_MEASUREMENTS)
         self.menu_view_pos = 0
         self.menu_item_pos = 0
-        self.mode = Mode.MEASURE
         self.is_blanked = False
         self.blank_values = ulab.numpy.ones((constants.NUM_CHANNEL,)) 
         self.channel = None
-
-        # Create screens
-        board.DISPLAY.brightness = 1.0
-        self.measure_screen = MeasureScreen()
-        self.message_screen = MessageScreen()
-        self.menu_screen = MenuScreen()
 
         # Setup gamepad inputs - change this (Keypad shift??)
         self.last_button_press = time.monotonic()
@@ -68,9 +68,9 @@ class Colorimeter:
             self.configuration.load()
         except ConfigurationError as error:
             # Unable to load configuration file or not a dict after loading
+            self.mode = Mode.MESSAGE
             self.message_screen.set_message(error)
             self.message_screen.set_to_error()
-            self.mode = Mode.MESSAGE
         self.channel = self.configuration.channel
 
         # Load calibrations and populate menu items
@@ -86,9 +86,9 @@ class Colorimeter:
             # We can load calibration, but detected errors in some calibrations
             if self.calibrations.has_errors:
                 error_msg = f'errors found in calibrations file'
+                self.mode = Mode.MESSAGE
                 self.message_screen.set_message(error_msg)
                 self.message_screen.set_to_error()
-                self.mode = Mode.MESSAGE
 
         self.menu_items.extend([k for k in self.calibrations.data])
         self.menu_items.append(self.ABOUT_STR)
@@ -99,9 +99,9 @@ class Colorimeter:
         else:
             if self.configuration.startup is not None:
                 error_msg = f'startup measurement {self.configuration.startup} not found'
+                self.mode = Mode.MESSAGE
                 self.message_screen.set_message(error_msg)
                 self.message_screen.set_to_error()
-                self.mode = Mode.MESSAGE
             self.measurement_name = self.menu_items[0] 
 
         # Setup light sensor and preliminary blanking 
@@ -109,21 +109,21 @@ class Colorimeter:
             self.light_sensor = LightSensor()
         except LightSensorIOError as error:
             error_msg = f'missing sensor? {error}'
+            self.mode = Mode.ABORT
             self.message_screen.set_message(error_msg,ok_to_continue=False)
             self.message_screen.set_to_abort()
-            self.mode = Mode.ABORT
         else:
             if self.configuration.gain is not None:
                 self.light_sensor.gain = self.configuration.gain
             if self.configuration.integration_time is not None:
                 self.light_sensor.integration_time = self.configuration.integration_time
-            self.light_sensor.channel = self.configuration.channel
             self.blank_sensor(set_blanked=False)
             self.measure_screen.set_not_blanked()
 
         # Setup up battery monitoring settings cycles 
         self.battery_monitor = BatteryMonitor()
         self.setup_menu_cycles()
+        self.is_startup = False
 
     def setup_menu_cycles(self):
         self.gain_cycle = adafruit_itertools.cycle(constants.GAIN_TO_STR) 
@@ -140,6 +140,29 @@ class Colorimeter:
         if self.configuration.channel is not None:
             while next(self.channel_cycle) != self.channel:
                 continue
+
+    @property
+    def mode(self):
+        return self._mode
+
+    @mode.setter
+    def mode(self, new_mode):
+        self.delete_screens()
+        if new_mode == Mode.MEASURE:
+            self.measure_screen = MeasureScreen()
+        elif new_mode in (Mode.MESSAGE, Mode.ABORT):
+            self.message_screen = MessageScreen()
+        elif new_mode == Mode.MENU:
+            self.menu_screen = MenuScreen()
+            self.menu_view_pos = 0
+            self.menu_item_pos = 0
+            self.update_menu_screen()
+        self._mode = new_mode
+
+    def delete_screens(self):
+        self.measure_screen = None 
+        self.message_screen = None 
+        self.menu_screen = None 
 
     @property
     def num_menu_items(self):
@@ -159,27 +182,28 @@ class Colorimeter:
             self.menu_view_pos -= 1
 
     def update_menu_screen(self):
-        n0 = self.menu_view_pos
-        n1 = n0 + self.menu_screen.items_per_screen
-        view_items = []
-        for i, item in enumerate(self.menu_items[n0:n1]):
-            led = self.calibrations.led(item)
-            chan = self.calibrations.channel(item)
-            if led is None and chan is None:
-                item_text = f'{n0+i} {item}' 
-            elif chan is None:
-                item_text = f'{n0+i} {item} ({led})' 
-            elif led is None:
-                chan_str = constants.CHANNEL_TO_STR[chan]
-                item_text = f'{n0+i} {item} ({chan_str})' 
-            else:
-                chan_str = constants.CHANNEL_TO_STR[chan]
-                item = item[:8]
-                item_text = f'{n0+i} {item} ({led},{chan_str})' 
-            view_items.append(item_text)
-        self.menu_screen.set_menu_items(view_items)
-        pos = self.menu_item_pos - self.menu_view_pos
-        self.menu_screen.set_curr_item(pos)
+        if self.menu_screen is not None:
+            n0 = self.menu_view_pos
+            n1 = n0 + self.menu_screen.items_per_screen
+            view_items = []
+            for i, item in enumerate(self.menu_items[n0:n1]):
+                led = self.calibrations.led(item)
+                chan = self.calibrations.channel(item)
+                if led is None and chan is None:
+                    item_text = f'{n0+i} {item}' 
+                elif chan is None:
+                    item_text = f'{n0+i} {item} ({led})' 
+                elif led is None:
+                    chan_str = constants.CHANNEL_TO_STR[chan]
+                    item_text = f'{n0+i} {item} ({chan_str})' 
+                else:
+                    chan_str = constants.CHANNEL_TO_STR[chan]
+                    item = item[:8]
+                    item_text = f'{n0+i} {item} ({led},{chan_str})' 
+                view_items.append(item_text)
+            self.menu_screen.set_menu_items(view_items)
+            pos = self.menu_item_pos - self.menu_view_pos
+            self.menu_screen.set_curr_item(pos)
 
     @property
     def is_absorbance(self):
@@ -202,15 +226,17 @@ class Colorimeter:
         return units
 
     @property
-    def raw_sensor_values(self):
-        uva, uvb, uvc, _ = self.light_sensor.raw_values
-        return uva, uvb, uvc 
+    def raw_sensor_value(self):
+        value = self.light_sensor.raw_values[self.channel]
+        if value >= self.light_sensor.max_counts:
+            raise LightSensorOverflow('light sensor reading > max_counts')
+        return value
 
     @property
     def transmittance(self):
-        value = float(self.raw_sensor_values[self.channel])
+        value = self.raw_sensor_value
         blank_value = self.blank_values[self.channel]
-        transmittance = value/blank_value
+        transmittance = float(value)/blank_value
         return value/blank_value
 
     @property
@@ -227,7 +253,7 @@ class Colorimeter:
         elif self.is_transmittance:
             value = self.transmittance
         elif self.is_raw_sensor:
-            value = self.raw_sensor_values[self.channel]
+            value = self.raw_sensor_value
         else:
             self.channel = self.calibrations.channel(self.measurement_name)
             try:
@@ -236,10 +262,10 @@ class Colorimeter:
                         self.absorbance
                         )
             except CalibrationsError as error:
+                self.mode = Mode.MESSAGE
                 self.message_screen.set_message(error_message)
                 self.message_screen.set_to_error()
                 self.measurement_name = 'Absorbance'
-                self.mode = Mode.MESSAGE
         return value
 
     def update_channel(self):
@@ -251,14 +277,10 @@ class Colorimeter:
                     continue
 
     def blank_sensor(self, set_blanked=True):
-        
         blank_samples = ulab.numpy.zeros( (constants.NUM_BLANK_SAMPLES,constants.NUM_CHANNEL))
         for i in range(constants.NUM_BLANK_SAMPLES):
-            try:
-                values = self.raw_sensor_values
-            except LightSensorOverflow:
-                value = self.light_sensor.max_counts
-            blank_samples[i,:] = values
+            uva, uvb, uvc, _ = self.light_sensor.raw_values
+            blank_samples[i,:] = [uva, uvb, uvc]
             time.sleep(constants.BLANK_DT)
         self.blank_values = ulab.numpy.median(blank_samples,axis=0)
         if set_blanked:
@@ -317,9 +339,6 @@ class Colorimeter:
                 self.blank_sensor()
             elif self.menu_button_pressed(buttons):
                 self.mode = Mode.MENU
-                self.menu_view_pos = 0
-                self.menu_item_pos = 0
-                self.update_menu_screen()
             elif self.gain_button_pressed(buttons):
                 self.light_sensor.gain = next(self.gain_cycle)
                 self.is_blanked = False
@@ -339,23 +358,26 @@ class Colorimeter:
             elif self.right_button_pressed(buttons): 
                 selected_item = self.menu_items[self.menu_item_pos]
                 if selected_item == self.ABOUT_STR:
+                    self.mode = Mode.MESSAGE
                     about_msg = f'firmware version {constants.__version__}'
                     self.message_screen.set_message(about_msg) 
                     self.message_screen.set_to_about()
-                    self.mode = Mode.MESSAGE
                 else:
-                    self.measurement_name = self.menu_items[self.menu_item_pos]
                     self.mode = Mode.MEASURE
+                    self.measurement_name = self.menu_items[self.menu_item_pos]
             self.update_menu_screen()
 
         elif self.mode == Mode.MESSAGE:
             if self.calibrations.has_errors:
+                self.mode = Mode.MESSAGE
                 error_msg = self.calibrations.pop_error()
                 self.message_screen.set_message(error_msg)
                 self.message_screen.set_to_error()
-                self.mode = Mode.MESSAGE
             else:
-                self.mode = Mode.MEASURE
+                if self.is_startup: 
+                    self.mode = Mode.MEASURE
+                elif self.menu_button_pressed(buttons):
+                    self.mode = Mode.MENU
 
     def check_debounce(self):
         button_dt = time.monotonic() - self.last_button_press
@@ -416,6 +438,5 @@ class Colorimeter:
 
             time.sleep(constants.LOOP_DT)
             gc.collect()
-
-
+            print(f'alloc: {gc.mem_alloc()}, free: {gc.mem_free()}')
 

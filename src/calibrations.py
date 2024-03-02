@@ -80,8 +80,7 @@ class Calibrations(JsonSettingsFile):
         try:
             min_value = float(range_data['min'])
         except KeyError:
-            error_msg = f'{name} range min missing'
-            error_list.append(error_msg)
+            pass
         except (ValueError, TypeError): 
             error_msg = f'{name} range min not float' 
             error_list.append(error_msg)
@@ -89,8 +88,7 @@ class Calibrations(JsonSettingsFile):
         try:
             max_value = float(range_data['max'])
         except KeyError:
-            error_msg = f'{name} range max missing'
-            error_list.append(error_msg)
+            pass
         except (ValueError, TypeError): 
             error_msg = f'{name} range max not float' 
             error_list.append(error_msg)

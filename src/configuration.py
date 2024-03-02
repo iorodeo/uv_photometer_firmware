@@ -22,6 +22,8 @@ class Configuration(JsonSettingsFile):
 
     def check(self):
 
+        error_dict = {}
+
         # Check gain
         try:
             gain_str = self.data['gain']
