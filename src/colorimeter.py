@@ -5,7 +5,6 @@ import board
 import keypad
 import analogio
 import digitalio
-#import gamepadshift
 import constants
 import adafruit_itertools
 
