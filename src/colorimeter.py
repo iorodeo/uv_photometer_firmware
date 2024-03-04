@@ -2,9 +2,10 @@ import gc
 import time
 import ulab
 import board
+import keypad
 import analogio
 import digitalio
-import gamepadshift
+#import gamepadshift
 import constants
 import adafruit_itertools
 
@@ -54,12 +55,12 @@ class Colorimeter:
         self.blank_values = ulab.numpy.ones((constants.NUM_CHANNEL,)) 
         self.channel = None
 
-        # Setup gamepad inputs - change this (Keypad shift??)
-        self.last_button_press = time.monotonic()
-        self.pad = gamepadshift.GamePadShift(
-                digitalio.DigitalInOut(board.BUTTON_CLOCK), 
-                digitalio.DigitalInOut(board.BUTTON_OUT),
-                digitalio.DigitalInOut(board.BUTTON_LATCH),
+        self.pad = keypad.ShiftRegisterKeys( 
+                clock=board.BUTTON_CLOCK, 
+                data=board.BUTTON_OUT, 
+                latch=board.BUTTON_LATCH, 
+                key_count=8, 
+                value_when_pressed=True,
                 )
 
         # Load Configuration
@@ -320,42 +321,40 @@ class Colorimeter:
             return False
 
     def handle_button_press(self):
-        buttons = self.pad.get_pressed()
-        if not buttons:
-            # No buttons pressed
-            return 
-        if not self.check_debounce():
-            # Still within debounce timeout
-            return  
+        """  
+        Update state of system based on buttons pressed. This is 
+        different for each operating mode. 
+        """
+        event = self.pad.events.get()
+        if event is None:
+            return
+        if event.pressed:
+            return
 
-        # Get time of last button press for debounce check
-        self.last_button_press = time.monotonic()
-
-        # Update state of system based on buttons pressed.
-        # This is different for each operating mode. 
         if self.mode == Mode.MEASURE:
-            if self.blank_button_pressed(buttons):
-                self.measure_screen.set_blanking()
-                self.blank_sensor()
-            elif self.menu_button_pressed(buttons):
+            if event.key_number == constants.BUTTON['blank']: 
+                if not self.is_raw_sensor:
+                    self.measure_screen.set_blanking()
+                    self.blank_sensor()
+            elif event.key_number == constants.BUTTON['menu']:
                 self.mode = Mode.MENU
-            elif self.gain_button_pressed(buttons):
+            elif event.key_number == constants.BUTTON['gain']: 
                 self.light_sensor.gain = next(self.gain_cycle)
                 self.is_blanked = False
-            elif self.itime_button_pressed(buttons):
+            elif event.key_number == constants.BUTTON['itime']: 
                 self.light_sensor.integration_time = next(self.itime_cycle)
                 self.is_blanked = False
-            elif self.channel_button_pressed(buttons):
+            elif event.key_number == constants.BUTTON['left']: 
                 self.channel = next(self.channel_cycle)
 
         elif self.mode == Mode.MENU:
-            if self.menu_button_pressed(buttons):
+            if event.key_number == constants.BUTTON['menu']: 
                 self.mode = Mode.MEASURE
-            elif self.up_button_pressed(buttons): 
+            elif event.key_number == constants.BUTTON['up']: 
                 self.decr_menu_item_pos()
-            elif self.down_button_pressed(buttons): 
+            elif event.key_number == constants.BUTTON['down']: 
                 self.incr_menu_item_pos()
-            elif self.right_button_pressed(buttons): 
+            elif event.key_number == constants.BUTTON['right']: 
                 selected_item = self.menu_items[self.menu_item_pos]
                 if selected_item == self.ABOUT_STR:
                     self.mode = Mode.MESSAGE
@@ -367,29 +366,23 @@ class Colorimeter:
                     self.measurement_name = self.menu_items[self.menu_item_pos]
             self.update_menu_screen()
 
-        elif self.mode == Mode.MESSAGE:
-            if self.calibrations.has_errors:
-                self.mode = Mode.MESSAGE
-                error_msg = self.calibrations.pop_error()
-                self.message_screen.set_message(error_msg)
-                self.message_screen.set_to_error()
-            else:
-                if self.is_startup: 
-                    self.mode = Mode.MEASURE
-                elif self.menu_button_pressed(buttons):
-                    self.mode = Mode.MENU
 
-    def check_debounce(self):
-        button_dt = time.monotonic() - self.last_button_press
-        if button_dt < constants.DEBOUNCE_DT: 
-            return False
+    def update_message(self): 
+        if self.calibrations.has_errors:
+            self.mode = Mode.MESSAGE
+            error_msg = self.calibrations.pop_error()
+            self.message_screen.set_message(error_msg)
+            self.message_screen.set_to_error()
         else:
-            return True
+            if self.is_startup: 
+                self.mode = Mode.MEASURE
+            elif self.menu_button_pressed(buttons):
+                self.mode = Mode.MENU
+
 
     def run(self):
 
         while True:
-
             # Deal with any button presses
             self.handle_button_press()
 
@@ -434,9 +427,10 @@ class Colorimeter:
                 self.menu_screen.show()
 
             elif self.mode in (Mode.MESSAGE, Mode.ABORT):
+                self.update_message()
                 self.message_screen.show()
 
             time.sleep(constants.LOOP_DT)
             gc.collect()
-            print(f'alloc: {gc.mem_alloc()}, free: {gc.mem_free()}')
+            #print(f'alloc: {gc.mem_alloc()}, free: {gc.mem_free()}')
 
