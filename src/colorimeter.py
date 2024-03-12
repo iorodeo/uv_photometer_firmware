@@ -365,6 +365,13 @@ class Colorimeter:
                     self.measurement_name = self.menu_items[self.menu_item_pos]
             self.update_menu_screen()
 
+        elif self.mode == Mode.MESSAGE:
+            if not self.calibrations.has_errors:
+                if event.key_number == constants.BUTTON['menu']:
+                    self.mode = Mode.MENU
+
+
+
 
     def update_message(self): 
         if self.calibrations.has_errors:
@@ -372,11 +379,6 @@ class Colorimeter:
             error_msg = self.calibrations.pop_error()
             self.message_screen.set_message(error_msg)
             self.message_screen.set_to_error()
-        else:
-            if self.is_startup: 
-                self.mode = Mode.MEASURE
-            elif self.menu_button_pressed(buttons):
-                self.mode = Mode.MENU
 
 
     def run(self):
