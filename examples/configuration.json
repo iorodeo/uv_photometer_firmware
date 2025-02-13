@@ -1,5 +1,6 @@
 {
-  "gain" : "512x",
+  "gain" : "1024x",
   "integration_time" : "32ms",
-  "startup" : "Absorbance"
+  "startup" : "Absorbance",
+  "channel" : "UVC",
 } 
